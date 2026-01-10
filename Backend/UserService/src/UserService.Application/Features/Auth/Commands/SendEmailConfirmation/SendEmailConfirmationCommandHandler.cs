@@ -52,7 +52,7 @@ namespace UserService.Application.Features.Auth.Commands.SendEmailConfirmation
             await _userRepository.SaveAsync();
 
             // Отправляем email
-            await _emailService.SendEmailConfirmationAsync(user.Email, user.Name, confirmationToken);
+            await _emailService.SendEmailConfirmation(user.Email, user.Name, confirmationToken);
 
             return Unit.Value;
         }

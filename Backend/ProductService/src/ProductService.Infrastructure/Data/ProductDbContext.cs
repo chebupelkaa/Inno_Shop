@@ -27,7 +27,7 @@ namespace ProductService.Infrastructure.Data
 
                 entity.Property(p => p.Price).HasColumnType("decimal(18,2)"); 
 
-                entity.Property(p => p.DateOfCreation).HasDefaultValueSql("GETUTCDATE()");
+                //entity.Property(p => p.DateOfCreation).HasDefaultValueSql("GETUTCDATE()");
             });
         }
     }
