@@ -4,6 +4,12 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>df9ae29d-6b45-4908-bc25-94d73b751e42</UserSecretsId>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Controlles\" />
+    <Folder Include="Extensions\" />
+  </ItemGroup>
 
 </Project>
