@@ -15,7 +15,15 @@ namespace ProductService.API.Extensions
             {
                 try
                 {
-                    await db.Database.MigrateAsync();
+                    if (db.Database.IsRelational())
+                    {
+                        await db.Database.MigrateAsync();
+                    }
+                    else
+                    {
+                        await db.Database.EnsureCreatedAsync();
+                    }
+
                     logger.LogInformation("Database migrations applied successfully");
                     return;
                 }

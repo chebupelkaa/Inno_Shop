@@ -1,5 +1,5 @@
 # Build context: repository root
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 COPY Backend/UserService/src/UserService.Domain/UserService.Domain.csproj UserService/src/UserService.Domain/
@@ -13,7 +13,7 @@ COPY Backend/UserService/src/ UserService/src/
 
 RUN dotnet publish UserService/src/UserService.API/UserService.API.csproj -c Release -o /app/publish --no-restore
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
