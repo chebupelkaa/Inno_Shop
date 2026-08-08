@@ -1,43 +1,38 @@
 ﻿using MediatR;
-using UserService.Application.DTOs;
-using UserService.Application.Exceptions;
 using UserService.Application.Interfaces;
 using UserService.Domain.Interfaces;
 
 namespace UserService.Application.Features.Auth.Commands.ForgotPassword
 {
-    public class ForgotPasswordCommandHandler(IUserRepository userRepository, IEmailService emailService,
-    ITokenService tokenService) : IRequestHandler<ForgotPasswordCommand, Unit>
+    public class ForgotPasswordCommandHandler(IUserRepository userRepository, IEmailService emailService, ITokenService tokenService)
+        : IRequestHandler<ForgotPasswordCommand, Unit>
     {
-        private readonly IUserRepository _userRepository = userRepository;
-        private readonly IEmailService _emailService = emailService;
-        private readonly ITokenService _tokenService = tokenService;
-
         public async Task<Unit> Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
         {
-            var user = await _userRepository.GetByEmailAsync(request.Email);
+            var user = await userRepository.GetByEmailAsync(request.Email);
             if (user == null)
             {
-                throw new NotFoundException(typeof(UserDTO));
+                return Unit.Value;
             }
 
-            if (user.PasswordResetTokenExpiry > DateTime.UtcNow)
+            if (!string.IsNullOrEmpty(user.PasswordResetToken)
+                && user.PasswordResetTokenExpiry.HasValue
+                && user.PasswordResetTokenExpiry > DateTime.UtcNow)
             {
-                var timeLeft = (user.PasswordResetTokenExpiry.Value - DateTime.UtcNow).TotalMinutes;
-                throw new TokenAlreadyRequestedException(user.PasswordResetTokenExpiry.Value);
+                await emailService.SendPasswordRecovery(user.Email, user.PasswordResetToken);
+                return Unit.Value;
             }
 
-            var resetToken = _tokenService.GenerateSecureToken();
+            var resetToken = tokenService.GenerateSecureToken();
             user.PasswordResetToken = resetToken;
             user.PasswordResetTokenExpiry = DateTime.UtcNow.AddHours(1);
 
-            await _userRepository.UpdateAsync(user);
-            await _userRepository.SaveAsync();
+            await userRepository.UpdateAsync(user);
+            await userRepository.SaveAsync();
 
-            await _emailService.SendPasswordRecovery(user.Email, resetToken);
+            await emailService.SendPasswordRecovery(user.Email, resetToken);
 
             return Unit.Value;
         }
-
     }
 }
