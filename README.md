@@ -18,9 +18,9 @@ docker compose up --build
 
 JWT у обоих сервисов один и тот же. Миграции накатываются при старте.
 
-Без докера — LocalDB + User Secrets, запускаешь оба API из IDE.
+Без докера — LocalDB + User Secrets, запустить оба API из IDE.
 
-## Как потыкать руками
+## Тестовый flow
 
 1. `POST /api/auth/register` (users:8081)
 
@@ -28,10 +28,10 @@ JWT у обоих сервисов один и тот же. Миграции н�
 { "name": "Test User", "email": "user@example.com", "password": "Password1!" }
 ```
 
-2. Подтверди почту: MailHog → письмо со ссылкой, либо  
+2. Подтвердить почту: MailHog → письмо со ссылкой, либо  
    `GET /api/auth/confirm-email?email=...&token=...`
 
-3. `POST /api/auth/login` → забери `accessToken`
+3. `POST /api/auth/login` → взять `accessToken`
 
 ```json
 { "email": "user@example.com", "password": "Password1!" }
