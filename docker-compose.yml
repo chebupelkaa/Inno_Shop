@@ -1,0 +1,76 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: inno-shop-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Your_strong_Password123}"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -Q \"SELECT 1\" || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: inno-shop-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  users-api:
+    build:
+      context: .
+      dockerfile: Backend/UserService/src/UserService.API/Dockerfile
+    container_name: inno-shop-users-api
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__UsersDb: "Server=sqlserver,1433;Database=UsersDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Your_strong_Password123};TrustServerCertificate=True;"
+      Jwt__Secret: "${JWT_SECRET:-DEV_ONLY_InnoShop_JwtSecret_Min32Chars!}"
+      Jwt__Issuer: UserService
+      Jwt__Audience: UserServiceClients
+      Jwt__ExpiryMinutes: "60"
+      EmailConfiguration__From: "noreply@innoshop.local"
+      EmailConfiguration__SmtpServer: mailhog
+      EmailConfiguration__Port: "1025"
+      EmailConfiguration__Username: ""
+      EmailConfiguration__Password: ""
+      AppUrl: "http://localhost:8081/api/auth"
+    ports:
+      - "8081:8080"
+
+  products-api:
+    build:
+      context: .
+      dockerfile: Backend/ProductService/src/ProductService.API/Dockerfile
+    container_name: inno-shop-products-api
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__ProductsDb: "Server=sqlserver,1433;Database=ProductsDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Your_strong_Password123};TrustServerCertificate=True;"
+      Jwt__Secret: "${JWT_SECRET:-DEV_ONLY_InnoShop_JwtSecret_Min32Chars!}"
+      Jwt__Issuer: UserService
+      Jwt__Audience: UserServiceClients
+      Jwt__ExpiryMinutes: "60"
+      AppUrl: "http://localhost:8082"
+    ports:
+      - "8082:8080"
+
+volumes:
+  sqlserver-data:

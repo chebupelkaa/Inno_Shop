@@ -1,4 +1,5 @@
 using ProductService.Application.Extensions;
+using ProductService.Infrastructure.Data;
 using ProductService.Infrastructure.Extensions;
 using ProductService.API.Extensions;
 
@@ -10,6 +11,8 @@ builder.Services
     .AddPresentation();
 
 var app = builder.Build();
+
+await app.MigrateDatabaseAsync<ProductDbContext>();
 
 if (app.Environment.IsDevelopment())
 {

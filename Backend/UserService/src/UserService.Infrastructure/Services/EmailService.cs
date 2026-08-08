@@ -41,10 +41,16 @@ namespace UserService.Infrastructure.Services
 
             smtp.ServerCertificateValidationCallback = (s, c, h, e) => true;
 
-            await smtp.ConnectAsync(_emailOptions.SmtpServer, _emailOptions.Port,
-                MailKit.Security.SecureSocketOptions.StartTls);
+            var secureSocketOptions = _emailOptions.Port == 587
+                ? MailKit.Security.SecureSocketOptions.StartTls
+                : MailKit.Security.SecureSocketOptions.None;
 
-            await smtp.AuthenticateAsync(_emailOptions.Username, _emailOptions.Password);
+            await smtp.ConnectAsync(_emailOptions.SmtpServer, _emailOptions.Port, secureSocketOptions);
+
+            if (!string.IsNullOrWhiteSpace(_emailOptions.Username))
+            {
+                await smtp.AuthenticateAsync(_emailOptions.Username, _emailOptions.Password);
+            }
 
             await smtp.SendAsync(message);
             await smtp.DisconnectAsync(true);

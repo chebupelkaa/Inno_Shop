@@ -1,4 +1,5 @@
 using UserService.Application.Extensions;
+using UserService.Infrastructure.Data;
 using UserService.Infrastructure.Extensions;
 using UserService.API.Extensions;
 
@@ -10,6 +11,8 @@ builder.Services
     .AddPresentation();
 
 var app = builder.Build();
+
+await app.MigrateDatabaseAsync<UserDbContext>();
 
 if (app.Environment.IsDevelopment())
 {
