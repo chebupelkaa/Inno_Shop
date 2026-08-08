@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using UserService.Application.Behaviors;
 using UserService.Application.Interfaces;
 using UserService.Application.Services;
 
@@ -12,7 +13,11 @@ namespace UserService.Application.Extensions
         {
             var assembly = Assembly.GetExecutingAssembly();
 
-            services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly));
+            services.AddMediatR(cfg =>
+            {
+                cfg.RegisterServicesFromAssembly(assembly);
+                cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+            });
             services.AddValidatorsFromAssembly(assembly);
             services.AddAutoMapper(assembly);
             services.AddScoped<IAuthenticationService, AuthenticationService>();

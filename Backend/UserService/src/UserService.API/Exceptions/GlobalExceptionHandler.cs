@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Diagnostics;
+﻿using FluentValidation;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using UserService.Application.Exceptions;
 
@@ -16,6 +17,7 @@ namespace UserService.API.Exceptions
 
             httpContext.Response.StatusCode = exception switch
             {
+                ValidationException => StatusCodes.Status400BadRequest,
                 InvalidOperationException => StatusCodes.Status409Conflict,
                 ArgumentException or ArgumentNullException => StatusCodes.Status400BadRequest,
                 NotFoundException => StatusCodes.Status404NotFound,
@@ -23,17 +25,28 @@ namespace UserService.API.Exceptions
                 _ => StatusCodes.Status500InternalServerError
             };
 
+            var problemDetails = new ProblemDetails
+            {
+                Type = exception.GetType().Name,
+                Title = "An error occured",
+                Detail = exception.Message,
+                Status = httpContext.Response.StatusCode
+            };
+
+            if (exception is ValidationException validationException)
+            {
+                problemDetails.Title = "Validation failed";
+                problemDetails.Detail = "One or more validation errors occurred.";
+                problemDetails.Extensions["errors"] = validationException.Errors
+                    .GroupBy(e => e.PropertyName)
+                    .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
+            }
+
             return await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
             {
                 HttpContext = httpContext,
                 Exception = exception,
-                ProblemDetails = new ProblemDetails
-                {
-                    Type = exception.GetType().Name,
-                    Title = "An error occured",
-                    Detail = exception.Message,
-                    Status = httpContext.Response.StatusCode
-                }
+                ProblemDetails = problemDetails
             });
         }
     }
