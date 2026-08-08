@@ -1,22 +1,20 @@
 ﻿using MediatR;
 using UserService.Application.DTOs;
 using UserService.Application.Exceptions;
-using UserService.Application.Interfaces;
 using UserService.Domain.Interfaces;
 
 namespace UserService.Application.Features.Auth.Commands.ResetPassword
 {
     public class ResetPasswordCommandHandler(IUserRepository userRepository) : IRequestHandler<ResetPasswordCommand, Unit>
     {
-        private readonly IUserRepository _userRepository;
-        public async Task<Unit> Handle(ResetPasswordCommand request,CancellationToken cancellationToken)
+        public async Task<Unit> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
         {
-            if (request.NewPassword==request.ConfirmPassword)
+            if (request.NewPassword != request.ConfirmPassword)
             {
                 throw new PasswordValidationException();
             }
 
-            var user = await _userRepository.GetByEmailAsync(request.Email);
+            var user = await userRepository.GetByEmailAsync(request.Email);
 
             if (user == null)
             {
@@ -44,11 +42,10 @@ namespace UserService.Application.Features.Auth.Commands.ResetPassword
             user.RefreshToken = null;
             user.RefreshTokenExpiryTime = null;
 
-            await _userRepository.UpdateAsync(user);
-            await _userRepository.SaveAsync();
+            await userRepository.UpdateAsync(user);
+            await userRepository.SaveAsync();
 
             return Unit.Value;
-
         }
     }
 }
