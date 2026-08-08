@@ -1,37 +1,40 @@
-﻿
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using UserService.API.Exceptions;
+using UserService.Application.Options;
 
 namespace UserService.API.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddPresentation(
-            this IServiceCollection services,
-            IConfiguration configuration)
+        public static IServiceCollection AddPresentation(this IServiceCollection services)
         {
             services.AddControllers();
 
             services.AddEndpointsApiExplorer();
 
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-               .AddJwtBearer(options =>
-               {
-                   options.RequireHttpsMetadata = false;
-                   options.TokenValidationParameters = new TokenValidationParameters
-                   {
-                       ValidateIssuer = true,
-                       ValidateAudience = true,
-                       ValidateLifetime = true,
-                       ValidateIssuerSigningKey = true,
-                       ValidIssuer = configuration["Jwt:Issuer"],
-                       ValidAudience = configuration["Jwt:Audience"],
-                       IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Secret"]!))
-                   };
-               });
+               .AddJwtBearer();
+
+            services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+                .Configure<IOptions<JwtOptions>>((options, jwtOptions) =>
+                {
+                    var jwt = jwtOptions.Value;
+                    options.RequireHttpsMetadata = false;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = jwt.Issuer,
+                        ValidAudience = jwt.Audience,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Secret))
+                    };
+                });
 
             services.AddAuthorization();
 
@@ -68,9 +71,6 @@ namespace UserService.API.Extensions
                     }
                 });
             });
-
-            //services.AddFluentValidationAutoValidation();
-            //services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
             services.AddExceptionHandler<GlobalExceptionHandler>();
             services.AddProblemDetails();

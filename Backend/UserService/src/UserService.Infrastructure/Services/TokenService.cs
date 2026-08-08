@@ -1,21 +1,18 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using UserService.Application.Interfaces;
+using UserService.Application.Options;
 using UserService.Domain.Entities;
 
 namespace UserService.Infrastructure.Services
 {
-    public class TokenService : ITokenService
+    public class TokenService(IOptions<JwtOptions> jwtOptions) : ITokenService
     {
-        private readonly IConfiguration _configuration;
-        public TokenService(IConfiguration configuration)
-        {
-            _configuration = configuration;
-        }
+        private readonly JwtOptions _jwtOptions = jwtOptions.Value;
 
         public string GenerateAccessToken(User user)
         {
@@ -29,12 +26,12 @@ namespace UserService.Infrastructure.Services
                 new Claim("IsEmailConfirmed", user.IsEmailConfirmed.ToString())
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Secret"]!));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Secret));
             var token = new JwtSecurityToken(
-                 issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
+                issuer: _jwtOptions.Issuer,
+                audience: _jwtOptions.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["Jwt:ExpiryMinutes"])),
+                expires: DateTime.UtcNow.AddMinutes(_jwtOptions.ExpiryMinutes),
                 signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
             );
 
@@ -52,7 +49,7 @@ namespace UserService.Infrastructure.Services
         public ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Secret"]!);
+            var key = Encoding.UTF8.GetBytes(_jwtOptions.Secret);
 
             try
             {
@@ -77,6 +74,7 @@ namespace UserService.Infrastructure.Services
                 return null;
             }
         }
+
         public string GenerateSecureToken(int length = 32)
         {
             if (length <= 0)
@@ -93,44 +91,5 @@ namespace UserService.Infrastructure.Services
                 .Replace("/", "_")
                 .Replace("=", "");
         }
-
     }
 }
-
-
-//public async Task<string> GenerateAndSaveRefreshToken(User user)
-//{
-//    var refreshToken = GenerateRefreshToken();
-//    user.RefreshToken = refreshToken;
-//    user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-//    await _userRepository.UpdateAsync(user);
-//    await _userRepository.SaveAsync();
-//    return refreshToken;
-//}
-
-//public ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)
-//{
-//    var tokenHandler = new JwtSecurityTokenHandler();
-//    var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!);
-
-//    try
-//    {
-//        var principal = tokenHandler.ValidateToken(token, new TokenValidationParameters
-//        {
-//            ValidateIssuerSigningKey = true,
-//            IssuerSigningKey = new SymmetricSecurityKey(key),
-//            ValidateIssuer = false,
-//            ValidIssuer = _configuration["Jwt:Issuer"],
-//            ValidateAudience = true,
-//            ValidAudience = _configuration["Jwt:Audience"],
-//            ValidateLifetime = false,
-//            ClockSkew = TimeSpan.Zero
-//        }, out SecurityToken validatedToken);
-
-//        return principal;
-//    }
-//    catch
-//    {
-//        return null;
-//    }
-//}

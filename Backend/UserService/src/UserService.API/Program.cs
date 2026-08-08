@@ -4,13 +4,10 @@ using UserService.API.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Program.cs
-//builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
-
 builder.Services
     .AddInfrastructure(builder.Configuration)
     .AddApplication()
-    .AddPresentation(builder.Configuration);
+    .AddPresentation();
 
 var app = builder.Build();
 
