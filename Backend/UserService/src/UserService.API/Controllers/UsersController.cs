@@ -48,7 +48,7 @@ namespace UserService.API.Controllers
         }
         //update?
 
-        [HttpGet("delete/{id}")]
+        [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
