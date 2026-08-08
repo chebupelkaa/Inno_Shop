@@ -1,6 +1,8 @@
 ﻿using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using UserService.Application.Interfaces;
+using UserService.Application.Services;
 
 namespace UserService.Application.Extensions
 {
@@ -13,6 +15,7 @@ namespace UserService.Application.Extensions
             services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly));
             services.AddValidatorsFromAssembly(assembly);
             services.AddAutoMapper(assembly);
+            services.AddScoped<IAuthenticationService, AuthenticationService>();
 
             return services;
         }
