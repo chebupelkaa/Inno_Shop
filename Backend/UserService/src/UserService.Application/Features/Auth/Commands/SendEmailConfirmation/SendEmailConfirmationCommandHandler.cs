@@ -1,5 +1,4 @@
 ﻿using MediatR;
-using Microsoft.Extensions.Logging;
 using UserService.Application.DTOs;
 using UserService.Application.Exceptions;
 using UserService.Application.Interfaces;
@@ -7,30 +6,16 @@ using UserService.Domain.Interfaces;
 
 namespace UserService.Application.Features.Auth.Commands.SendEmailConfirmation
 {
-    public class SendEmailConfirmationCommandHandler : IRequestHandler<SendEmailConfirmationCommand, Unit>
+    public class SendEmailConfirmationCommandHandler(IUserRepository userRepository, IEmailService emailService, ITokenService tokenService)
+        : IRequestHandler<SendEmailConfirmationCommand, Unit>
     {
-        private readonly IUserRepository _userRepository;
-        private readonly IEmailService _emailService;
-        private readonly ITokenService _tokenService;
-
-        public SendEmailConfirmationCommandHandler(
-            IUserRepository userRepository,
-            IEmailService emailService,
-            ITokenService tokenService,
-            ILogger<SendEmailConfirmationCommandHandler> logger)
-        {
-            _userRepository = userRepository;
-            _emailService = emailService;
-            _tokenService = tokenService;
-        }
-
         public async Task<Unit> Handle(SendEmailConfirmationCommand request, CancellationToken cancellationToken)
         {
-            var user = await _userRepository.GetByEmailAsync(request.Email);
+            var user = await userRepository.GetByEmailAsync(request.Email);
 
             if (user == null)
             {
-                throw new NotFoundException(typeof(UserDTO),user);
+                throw new NotFoundException(typeof(UserDTO));
             }
 
             if (user.IsEmailConfirmed)
@@ -38,21 +23,22 @@ namespace UserService.Application.Features.Auth.Commands.SendEmailConfirmation
                 throw new BaseException("Email is already confirmed");
             }
 
-            if (user.EmailConfirmationTokenExpiry.HasValue && user.EmailConfirmationTokenExpiry > DateTime.UtcNow)
+            if (!string.IsNullOrEmpty(user.EmailConfirmationToken)
+                && user.EmailConfirmationTokenExpiry.HasValue
+                && user.EmailConfirmationTokenExpiry > DateTime.UtcNow)
             {
-                var minutesLeft = (int)(user.EmailConfirmationTokenExpiry.Value - DateTime.UtcNow).TotalMinutes;
-                throw new TokenAlreadyRequestedException(user.EmailConfirmationTokenExpiry.Value);
+                await emailService.SendEmailConfirmation(user.Email, user.Name, user.EmailConfirmationToken);
+                return Unit.Value;
             }
 
-            var confirmationToken = _tokenService.GenerateSecureToken();
+            var confirmationToken = tokenService.GenerateSecureToken();
             user.EmailConfirmationToken = confirmationToken;
-            user.EmailConfirmationTokenExpiry = DateTime.UtcNow.AddDays(3); 
+            user.EmailConfirmationTokenExpiry = DateTime.UtcNow.AddDays(3);
 
-            await _userRepository.UpdateAsync(user);
-            await _userRepository.SaveAsync();
+            await userRepository.UpdateAsync(user);
+            await userRepository.SaveAsync();
 
-            // Отправляем email
-            await _emailService.SendEmailConfirmation(user.Email, user.Name, confirmationToken);
+            await emailService.SendEmailConfirmation(user.Email, user.Name, confirmationToken);
 
             return Unit.Value;
         }

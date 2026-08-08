@@ -1,9 +1,8 @@
 ﻿using MediatR;
-using UserService.Application.DTOs;
 
 namespace UserService.Application.Features.Auth.Commands.Register
 {
-    public class RegisterCommand : IRequest<TokenResponseDTO>
+    public class RegisterCommand : IRequest<Unit>
     {
         public string Name { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;

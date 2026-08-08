@@ -1,6 +1,4 @@
-﻿using AutoMapper;
-using MediatR;
-using UserService.Application.DTOs;
+﻿using MediatR;
 using UserService.Application.Exceptions;
 using UserService.Application.Interfaces;
 using UserService.Domain.Entities;
@@ -9,18 +7,18 @@ using UserService.Domain.Interfaces;
 
 namespace UserService.Application.Features.Auth.Commands.Register
 {
-    public class RegisterCommandHandler(IUserRepository userRepository, IAuthenticationService authService)
-        : IRequestHandler<RegisterCommand, TokenResponseDTO>
+    public class RegisterCommandHandler(IUserRepository userRepository, IEmailService emailService, ITokenService tokenService)
+        : IRequestHandler<RegisterCommand, Unit>
     {
-        private readonly IUserRepository _userRepository = userRepository;
-        private readonly IAuthenticationService _authService = authService;
-        public async Task<TokenResponseDTO> Handle(RegisterCommand request, CancellationToken cancellationToken)
+        public async Task<Unit> Handle(RegisterCommand request, CancellationToken cancellationToken)
         {
-            var existingUser = await _userRepository.GetByEmailAsync(request.Email);
+            var existingUser = await userRepository.GetByEmailAsync(request.Email);
             if (existingUser != null)
             {
                 throw new AlreadyExists($"User with email {request.Email} already exists");
             }
+
+            var confirmationToken = tokenService.GenerateSecureToken();
 
             var user = new User
             {
@@ -29,13 +27,17 @@ namespace UserService.Application.Features.Auth.Commands.Register
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 Role = UserRole.User,
                 IsEmailConfirmed = false,
-                IsActive = true
+                IsActive = true,
+                EmailConfirmationToken = confirmationToken,
+                EmailConfirmationTokenExpiry = DateTime.UtcNow.AddDays(3)
             };
 
-            await _userRepository.CreateAsync(user);
-            await _userRepository.SaveAsync();
+            await userRepository.CreateAsync(user);
+            await userRepository.SaveAsync();
 
-            return await _authService.GenerateAuthenticationAsync(user);
+            await emailService.SendEmailConfirmation(user.Email, user.Name, confirmationToken);
+
+            return Unit.Value;
         }
     }
 }
