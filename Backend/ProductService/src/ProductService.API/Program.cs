@@ -1,11 +1,13 @@
+using ProductService.Application.Extensions;
 using ProductService.Infrastructure.Extensions;
+using ProductService.API.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
-    .AddInfrastructure(builder.Configuration);
-//    .AddApplication()
-//    .AddPresentation(builder.Configuration);
+    .AddInfrastructure(builder.Configuration)
+    .AddApplication()
+    .AddPresentation();
 
 var app = builder.Build();
 
@@ -15,7 +17,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-//app.UseHttpsRedirection();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 

@@ -5,51 +5,85 @@ using ProductService.Infrastructure.Data;
 
 namespace ProductService.Infrastructure.Repositories
 {
-    public class ProductRepository : IProductRepository
+    public class ProductRepository(ProductDbContext context) : IProductRepository
     {
-        private readonly ProductDbContext _context;
-
-        public ProductRepository(ProductDbContext context)
+        public async Task<Product> CreateAsync(Product product)
         {
-            _context = context;
-        }
-
-        public async Task<Product> CreateAsync(Product user)
-        {
-            await _context.Products.AddAsync(user);
-            return user;
+            await context.Products.AddAsync(product);
+            return product;
         }
 
         public async Task<List<Product>> GetAllAsync()
         {
-            return await _context.Products
-                .ToListAsync();
+            return await context.Products.ToListAsync();
+        }
+
+        public async Task<List<Product>> GetFilteredAsync(string? name, decimal? minPrice, decimal? maxPrice, 
+            bool? availability, int? userId, DateTime? createdFrom, DateTime? createdTo)
+        {
+            var query = context.Products.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                query = query.Where(p => p.Name.Contains(name));
+            }
+
+            if (minPrice.HasValue)
+            {
+                query = query.Where(p => p.Price >= minPrice.Value);
+            }
+
+            if (maxPrice.HasValue)
+            {
+                query = query.Where(p => p.Price <= maxPrice.Value);
+            }
+
+            if (availability.HasValue)
+            {
+                query = query.Where(p => p.Availability == availability.Value);
+            }
+
+            if (userId.HasValue)
+            {
+                query = query.Where(p => p.UserId == userId.Value);
+            }
+
+            if (createdFrom.HasValue)
+            {
+                query = query.Where(p => p.DateOfCreation >= createdFrom.Value);
+            }
+
+            if (createdTo.HasValue)
+            {
+                query = query.Where(p => p.DateOfCreation <= createdTo.Value);
+            }
+
+            return await query.OrderByDescending(p => p.DateOfCreation).ToListAsync();
         }
 
         public async Task<Product?> GetByIdAsync(int id)
         {
-            return await _context.Products.FirstOrDefaultAsync(u => u.Id == id);
+            return await context.Products.FirstOrDefaultAsync(p => p.Id == id);
         }
 
-
-        public async Task<Product> UpdateAsync(Product user)
+        public Task<Product> UpdateAsync(Product product)
         {
-            _context.Products.Update(user);
-            return user;
+            context.Products.Update(product);
+            return Task.FromResult(product);
         }
 
         public async Task DeleteAsync(int id)
         {
-            var user = await GetByIdAsync(id);
-            if (user != null)
+            var product = await GetByIdAsync(id);
+            if (product != null)
             {
-                _context.Products.Remove(user);
+                context.Products.Remove(product);
             }
         }
 
         public async Task SaveAsync()
         {
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
     }
 }
